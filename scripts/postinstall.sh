@@ -1,0 +1,34 @@
+#!/bin/sh -u
+
+# Unset these as if they're empty it'll break freebsd-update
+major_version="$(uname -r | awk -F. '{print $1}')"
+
+if [ "$major_version" -lt 10 ]; then
+  # Allow freebsd-update to run fetch without stdin attached to a terminal
+  sed 's/\[ ! -t 0 \]/false/' /usr/sbin/freebsd-update >/tmp/freebsd-update
+  chmod +x /tmp/freebsd-update
+
+  freebsd_update="/tmp/freebsd-update"
+else
+  freebsd_update="/usr/sbin/freebsd-update --not-running-from-cron"
+fi
+
+# Update FreeBSD
+# NOTE: this will fail if there aren't any patches available for the release yet
+env PAGER=/bin/cat $freebsd_update fetch || true
+env PAGER=/bin/cat $freebsd_update install || true
+
+# Always use pkgng - pkg_add is EOL as of 1 September 2014
+echo "==> Bootstrap pkg";
+env ASSUME_ALWAYS_YES=true pkg bootstrap
+if [ "$major_version" -lt 10 ]; then
+    echo "WITH_PKGNG=yes" >>/etc/make.conf
+fi
+
+echo "==> Update packages"
+pkg update
+
+pkg install -y python27 sudo ansible
+ln -s /usr/local/bin/python2.7 /usr/bin/python
+echo "%wheel ALL=(ALL) NOPASSWD: ALL" >> /usr/local/etc/sudoers
+

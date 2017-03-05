@@ -1,0 +1,128 @@
+---
+# TODO:
+# - PKG repo
+# - Ensure cronjob survives reboot
+
+- hosts: all
+  become: yes
+
+  vars:
+    hostname: 'my_nas'
+    nameservers: ['192.168.1.1']
+    files_folder: "/tmp/files"
+
+  tasks:
+  - name: Installs common packages
+    pkgng: name="{{item}}" state='present'
+    with_items:
+      - 'vim-lite'
+      - 'tmux'
+      - 'wget'
+      - 'curl'
+      - 'zsh'
+      - 'rsync'
+      - 'samba44'
+      - 'smartmontools'
+
+  - name: Configure rc.conf
+    lineinfile: dest="/etc/rc.conf" regexp="^{{item.name}}=" line="{{item.name}}=\"{{item.value}}\""
+    with_items:
+      - { name: 'hostname', value: '{{hostname}}' }
+      - { name: 'keymap', value: 'german.iso.acc.kbd' }
+      - { name: 'ifconfig_igb0', value: 'DHCP' }
+      - { name: 'ifconfig_igb1', value: 'DHCP' }
+      - { name: 'sshd_enable', value: 'YES' }
+      - { name: 'syslogd_enable', value: 'YES' }
+      - { name: 'syslogd_flags', value: '-s' }
+      - { name: 'ntpd_enable', value: 'YES' }
+      - { name: 'zfs_enable', value: 'YES' }
+      - { name: 'samba_server_enable', value: 'YES' }
+      - { name: 'pf_enable', value: 'YES' }
+      - { name: 'pflog_enable', value: 'YES' }
+
+  - name: Configure loader.conf, configure serial console
+    lineinfile: dest="/boot/loader.conf" regexp="^{{item.name}}=" line="{{item.name}}=\"{{item.value}}\""
+    with_items:
+      - { name: 'boot_serial', value: 'YES' }
+      - { name: 'comconsole_speed', value: '115200' }
+      - { name: 'console', value: 'comconsole' }
+      - { name: 'aio_load', value: 'YES' }
+      - { name: 'ahci_load', value: 'YES' }
+
+  - name: Configure periodic.conf
+    lineinfile: dest="/etc/periodic.conf" regexp="^{{item.name}}=" line="{{item.name}}=\"{{item.value}}\"" create="yes"
+    with_items:
+      - { name: 'weekly_locate_enable', value: 'NO' }
+      - { name: 'daily_scrub_zfs_enable', value: 'NO' }
+      - { name: 'daily_scrub_zfs_default_threshold', value: '60' }
+
+  - name: Setup user yann
+    user: name='yann' state='present' groups='wheel' shell='/usr/local/bin/zsh'
+
+  - name: Allow passwordless sudo
+    lineinfile: "dest=/usr/local/etc/sudoers state=present regexp='^%wheel' line='%wheel ALL=(ALL) NOPASSWD: ALL'"
+
+  - name: Adds SSH authorized key for yann
+    authorized_key: user='yann' key="{{item}}"
+    with_file:
+      - "{{files_folder}}/authorized_keys"
+
+  - name: Copies login.conf, enabling utf8
+    copy: src="{{files_folder}}/login.conf" dest='/etc/login.conf'
+
+  - name: Sets timezone to Europe/Berlin
+    file: state='link' src='/usr/share/zoneinfo/Europe/Berlin' path='/etc/localtime' force=yes
+
+  - name: Sets DNS server, as it wont be able to write /etc/resolv.conf
+    template: src="{{files_folder}}/resolv.conf.j2" dest='/etc/resolv.conf'
+
+  - name: Add hostname as alias to localhost
+    lineinfile: "dest='/etc/hosts' regexp='127\\.0\\.0\\.1' line='127.0.0.1 localhost {{hostname}}'"
+
+  - name: Add Router IP to known hosts
+    lineinfile: dest='/etc/hosts' regexp='tor' line="192.168.1.1    tor"
+
+  - name: Send syslog to Router
+    lineinfile: dest='/etc/syslog.conf' regexp='@tor' line="*.*      @tor"
+
+  - name: Do not send messages to console
+    lineinfile: dest='/etc/syslog.conf' regexp='\/dev\/console' state='absent'
+
+  - name: Copy sshd config
+    copy: src="{{files_folder}}/sshd_config" dest='/etc/ssh/sshd_config'
+
+  - name: Create zshrc for yann
+    copy: src="{{files_folder}}/zshrc" dest='/home/yann/.zshrc' owner='yann' group='yann' mode='0644'
+
+  - name: Configures /, should be read-only
+    mount: name='/' src='/dev/ada4p3' fstype='ufs' opts='ro' state='present' dump='1' passno='1'
+
+  - name: Configures swap
+    lineinfile: dest='/etc/fstab' regexp='swap' line='/dev/ada4p2 none swap sw 0 0'
+
+  - name: Configures /tmp
+    mount: name='/tmp' src='md' fstype='mfs' opts='-s=64M,rw' state='present'
+
+  - name: Configures /var
+    mount: name='/var' src='md' fstype='mfs' opts='-s=512M,rw' state='present'
+
+  - name: Installs rc file to create directories for samba in /var
+    copy: src="{{files_folder}}/var_samba_dirs" dest='/usr/local/etc/rc.d/var_samba_dirs' mode='0555'
+
+  - name: Create diskless file
+    copy: content='' dest='/etc/diskless' owner='root' group='wheel' mode='0644'
+
+  - name: Create the mountpoint for the ZFS pool
+    file: path='/pool' state='directory' owner='root' group='wheel' mode='0755'
+
+  - name: Copies smb4.conf
+    copy: src="{{files_folder}}/smb4.conf" dest='/usr/local/etc/smb4.conf'
+
+  - name: Copies firewall
+    copy: src="{{files_folder}}/pf.conf" dest='/etc/pf.conf' owner='root' group='wheel' mode='0644'
+
+  - name: Copies disks spindown script
+    copy: src="{{files_folder}}/pool_spindown.sh" dest='/usr/local/bin/pool_spindown.sh' owner='root' group='wheel' mode='0755'
+
+  - name: Create cronjob for the spindown job
+    cron: name="spindown" minute="*/10" job="/usr/local/bin/pool_spindown.sh >/dev/null"

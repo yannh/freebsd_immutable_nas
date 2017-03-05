@@ -1,0 +1,73 @@
+{
+  "_comment": "Build with `packer build freebsd.json`",
+  "variables": {
+    "iso_checksum": "",
+    "iso_name": "",
+    "iso_path": "/Volumes/Storage/software/freebsd",
+    "iso_url": "",
+    "install_path": "installerconfig.freebsd",
+    "ssh_fullname": "Yann",
+    "ssh_password": "yann",
+    "ssh_username": "my_password",
+    "vm_name": "my_nas"
+  },
+  "builders": [
+    {
+      "type": "qemu",
+      "accelerator": "kvm",
+      "qemuargs": [["-m", "1024m"]],
+      "net_device": "virtio-net",
+      "boot_command": [
+        "<esc><wait>",
+        "boot -s<wait>",
+        "<enter><wait>",
+        "<wait10><wait10>",
+        "/bin/sh<enter><wait>",
+        "mdmfs -s 200m md1 /tmp<enter><wait>",
+        "mdmfs -s 200m md2 /mnt<enter><wait>",
+        "dhclient -l /tmp/dhclient.lease.vtnet0 vtnet0<enter><wait>",
+        "fetch -o /tmp/installerconfig http://{{ .HTTPIP }}:{{ .HTTPPort }}/{{user `install_path`}} && bsdinstall script /tmp/installerconfig<enter><wait>"
+      ],
+      "boot_wait": "6s",
+      "disk_size": "4096",
+      "disk_interface": "virtio",
+      "format": "raw",
+      "headless": "false",
+      "http_directory": "http",
+      "iso_checksum": "{{ user `iso_checksum` }}",
+      "iso_checksum_type": "sha256",
+      "iso_urls": [
+        "{{ user `iso_path` }}/{{ user `iso_name` }}",
+        "{{ user `iso_url` }}"
+      ],
+      "shutdown_command": "sudo shutdown -p now",
+      "ssh_password": "{{ user `ssh_password` }}",
+      "ssh_username": "{{ user `ssh_username` }}",
+      "ssh_wait_timeout": "10000s",
+      "vm_name": "{{user `vm_name`}}"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "execute_command": "echo 'root' | {{.Vars}} su -m root -c 'sh -eux {{.Path}}'",
+      "scripts": [
+        "script/postinstall.sh"
+      ]
+    },{
+      "type": "file",
+      "source": "./ansible/files",
+      "destination": "/tmp"
+    },{
+      "type": "ansible-local",
+      "playbook_file": "ansible/provision.yml",
+      "extra_arguments": ["--diff"]
+    },{
+      "type": "shell",
+      "execute_command": "echo 'root' | {{.Vars}} su -m root -c 'sh -eux {{.Path}}'",
+      "scripts": [
+        "script/cleanup.sh"
+      ]
+    }
+  ]
+}
