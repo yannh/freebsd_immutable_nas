@@ -19,7 +19,7 @@ This repository has been made public for educational purposes, to provide an exa
 
 The [Boxcutter project](https://github.com/boxcutter/bsd) was of great help for the automated installation.
 
-## Hardware (2014)
+## Hardware (Q4 2014)
 
  * Lian Li PC-Q25B Mini-ITX
  * Silverstone 300W SST-ST30SF 
