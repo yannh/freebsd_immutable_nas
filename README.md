@@ -17,7 +17,6 @@ Build with:
 
 This repository has been made public for educational purposes, to provide an example of a working "immutable server", and inspire people to start working on similar architectures. It can also serve as a good read on the basic configuration of FreeBSD as a NAS.
 
-The [Boxcutter project](https://github.com/boxcutter/bsd) was of great help for the automated installation.
 
 ## Hardware (Q4 2014)
 
@@ -33,3 +32,8 @@ The [Boxcutter project](https://github.com/boxcutter/bsd) was of great help for 
  * Inateck USB 3.0 Docking Station + Additional drives for backups through eSATA
  * Be Quiet! Silent Wings PWM 120+140mm
  * Additional short, 90 degrees SATA cables, null-modem serial cable for initial bios configuration
+
+## Thanks
+
+ * The [Boxcutter project](https://github.com/boxcutter/bsd) was of great help for the automated installation.
+ * Kfoda for [his script](https://forums.servethehome.com/index.php?threads/camcontrol-device-spindown-spinup-scripts-for-zpools.38/) to spindown/up drives from the zpool
