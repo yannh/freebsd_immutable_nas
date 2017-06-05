@@ -1,0 +1,12 @@
+[b2]
+type = b2
+account = {{ b2_account }}
+key = {{ b2_key}}
+endpoint =
+
+[b2-encrypted]
+type = crypt
+remote = b2:{{ b2_bucket }}
+filename_encryption = standard
+password = {{ b2_encryption_password }}
+

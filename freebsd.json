@@ -7,8 +7,8 @@
     "iso_url": "",
     "install_path": "installerconfig.freebsd",
     "ssh_fullname": "Yann",
-    "ssh_password": "yann",
-    "ssh_username": "my_password",
+    "ssh_username": "yann",
+    "ssh_password": "my_password",
     "vm_name": "my_nas"
   },
   "builders": [
@@ -41,8 +41,8 @@
         "{{ user `iso_url` }}"
       ],
       "shutdown_command": "sudo shutdown -p now",
-      "ssh_password": "{{ user `ssh_password` }}",
       "ssh_username": "{{ user `ssh_username` }}",
+      "ssh_password": "{{ user `ssh_password` }}",
       "ssh_wait_timeout": "10000s",
       "vm_name": "{{user `vm_name`}}"
     }
@@ -52,12 +52,16 @@
       "type": "shell",
       "execute_command": "echo 'root' | {{.Vars}} su -m root -c 'sh -eux {{.Path}}'",
       "scripts": [
-        "script/postinstall.sh"
+        "scripts/postinstall.sh"
       ]
     },{
       "type": "file",
       "source": "./ansible/files",
       "destination": "/tmp"
+    },{
+      "type": "file",
+      "source": "config.json",
+      "destination": "/tmp/config.json"
     },{
       "type": "ansible-local",
       "playbook_file": "ansible/provision.yml",
@@ -66,7 +70,7 @@
       "type": "shell",
       "execute_command": "echo 'root' | {{.Vars}} su -m root -c 'sh -eux {{.Path}}'",
       "scripts": [
-        "script/cleanup.sh"
+        "scripts/cleanup.sh"
       ]
     }
   ]

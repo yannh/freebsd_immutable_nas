@@ -1,0 +1,9 @@
+{
+    "hostname": "",
+    "nameservers": ["192.168.1.1"],
+    "files_folder": "/tmp/files"
+    "b2_account": "",
+    "b2_key": "",
+    "b2_bucket": "",
+    "b2_encryption_password": ""
+}

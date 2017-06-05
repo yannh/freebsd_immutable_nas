@@ -6,15 +6,15 @@
 - hosts: all
   become: yes
 
-  vars:
-    hostname: 'my_nas'
-    nameservers: ['192.168.1.1']
-    files_folder: "/tmp/files"
-
   tasks:
+  - name: load variables
+    include_vars: "/tmp/config.json"
+
   - name: Installs common packages
     pkgng: name="{{item}}" state='present'
     with_items:
+      # - 'rclone' We download the binary, and wait for ports to include >1.34
+      # because of a bug with b2/crypt
       - 'vim-lite'
       - 'tmux'
       - 'wget'
@@ -97,16 +97,22 @@
   - name: Configures /, should be read-only
     mount: name='/' src='/dev/ada4p3' fstype='ufs' opts='ro' state='present' dump='1' passno='1'
 
-  - name: Configures swap
+  - name: Configure swap
     lineinfile: dest='/etc/fstab' regexp='swap' line='/dev/ada4p2 none swap sw 0 0'
 
-  - name: Configures /tmp
+  - name: Configure /tmp
     mount: name='/tmp' src='md' fstype='mfs' opts='-s=64M,rw' state='present'
 
-  - name: Configures /var
+  - name: Create the folder for rclone configuration
+    file: path='/mnt/rclone_cache' state='directory' owner='root' group='wheel' mode='0777'
+
+  - name: Mount a small partition from the SSD cache for rclone to use
+    mount: name='/mnt/rclone_cache' src='/dev/ada3p1' fstype='ufs' opts='noexec,nosuid' state='present'
+
+  - name: Configure /var
     mount: name='/var' src='md' fstype='mfs' opts='-s=512M,rw' state='present'
 
-  - name: Installs rc file to create directories for samba in /var
+  - name: Install rc file to create directories for samba in /var
     copy: src="{{files_folder}}/var_samba_dirs" dest='/usr/local/etc/rc.d/var_samba_dirs' mode='0555'
 
   - name: Create diskless file
@@ -115,14 +121,29 @@
   - name: Create the mountpoint for the ZFS pool
     file: path='/pool' state='directory' owner='root' group='wheel' mode='0755'
 
-  - name: Copies smb4.conf
+  - name: Copy smb4.conf
     copy: src="{{files_folder}}/smb4.conf" dest='/usr/local/etc/smb4.conf'
 
-  - name: Copies firewall
+  - name: Copy firewall conf
     copy: src="{{files_folder}}/pf.conf" dest='/etc/pf.conf' owner='root' group='wheel' mode='0644'
 
-  - name: Copies disks spindown script
+  - name: Copy disks spindown script
     copy: src="{{files_folder}}/pool_spindown.sh" dest='/usr/local/bin/pool_spindown.sh' owner='root' group='wheel' mode='0755'
 
   - name: Create cronjob for the spindown job
     cron: name="spindown" minute="*/10" job="/usr/local/bin/pool_spindown.sh >/dev/null"
+
+  - name: Download and extract rclone
+    unarchive: remote_src=yes src=https://downloads.rclone.org/rclone-v1.36-freebsd-amd64.zip dest=/tmp/ validate_certs=false
+
+  - name: Copy binary
+    shell: cp /tmp/rclone*/rclone /usr/local/bin/rclone
+
+  - name: Delete temporary rclone files
+    shell: rm -rf /tmp/rclone*
+
+  - name: Create the folder for rclone configuration
+    file: path='/etc/rclone' state='directory' owner='root' group='wheel' mode='0755'
+
+  - name: Configure rclone for encrypted BackBlaze B2 backups
+    template: src="{{files_folder}}/rclone.conf.j2" dest='/etc/rclone/rclone.conf' owner='root' group='wheel' mode='0440'

@@ -2,3 +2,4 @@ output-qemu
 packer_cache
 *.swo
 *.swp
+config.json

@@ -15,7 +15,7 @@ EOT
 
 # Set up user accounts
 echo "my_password" | pw -V /etc useradd yann -h 0 -s /bin/sh -G wheel -d /home/yann -c "Yann"
-echo "my_root_password" | pw -V /etc usermod root -h 0
+echo "root"| pw -V /etc usermod root -h 0
 
 mkdir -p /home/yann
 chown 1001:1001 /home/yann
