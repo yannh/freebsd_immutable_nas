@@ -22,16 +22,13 @@ This repository has been made public for educational purposes, to provide an exa
 
  * Lian Li PC-Q25B Mini-ITX
  * Silverstone 300W SST-ST30SF 
- * ASRock C2550D4I - Mini-ITX Mainboard
- * 1 * 8GB Unbuffered ECC RAM Crucial CT102472BD160B
+ * SuperMicro A2SDi-2C-HLN4F - Mini-ITX Mainboard
+ * 1 * 8GB Unbuffered ECC RAM Kingston ValueRAM DDR4-2400 regECC
  * 3 * 4TB WD RED (ZFS pool)
  * 120GB internal SSD Intel SSDSC2BB120G401 DC S3500 Series (ZFS ZIL)
- * Transcend Ultra-Speed 133x 8GB Compact Flash Card (System)
- * SD-ADA40001 Adapter SATA II to CF 
  * SATA - eSATA adapter
  * Inateck USB 3.0 Docking Station + Additional drives for backups through eSATA
  * Be Quiet! Silent Wings PWM 120+140mm
- * Additional short, 90 degrees SATA cables, null-modem serial cable for initial bios configuration
 
 ## Thanks
 

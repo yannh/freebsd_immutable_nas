@@ -28,7 +28,8 @@ fi
 echo "==> Update packages"
 pkg update
 
-pkg install -y python27 sudo ansible
+pkg install -y python27 sudo py27-ansible
+rm -f /usr/bin/python
 ln -s /usr/local/bin/python2.7 /usr/bin/python
 echo "%wheel ALL=(ALL) NOPASSWD: ALL" >> /usr/local/etc/sudoers
 
